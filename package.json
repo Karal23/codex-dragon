@@ -14,7 +14,9 @@
     "test": "node --test tests/*.test.mjs",
     "install:mac": "node scripts/install-macos.mjs",
     "uninstall:mac": "node scripts/uninstall-macos.mjs",
-    "probe:mac": "node scripts/probe-macos.mjs"
+    "probe:mac": "node scripts/probe-macos.mjs",
+    "build:windows": "node scripts/build-windows.mjs",
+    "test:wsl": "node --test tests/wsl-companion.test.mjs"
   },
   "codexBuild": "auto-probe-fixed-20261005",
   "distributionName": "Codex-v0.4(fixed)",

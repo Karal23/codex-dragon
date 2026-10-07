@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, globalShortcut, shell, protocol, session, net, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, globalShortcut, shell, protocol, session, net, dialog, Notification, powerMonitor } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { UiStateStore } = require('./ui-state-store.cjs');
@@ -14,6 +14,8 @@ const { pathToFileURL } = require('node:url');
 const root = path.resolve(__dirname, '..');
 const dataDir = process.argv.find(a => a.startsWith('--whale-data='))?.slice(13);
 const fixture = process.env.WHALE_DESKTOP_TEST === '1';
+const wslMode = process.argv.includes('--wsl');
+if (wslMode) { app.setName('CodexDragon'); app.setAppUserModelId('Codex.Dragon'); }
 const initialHost = (() => { try { const h = JSON.parse(process.env.WHALE_INITIAL_HOST || 'null'); return h?.hostAlive ? h : null; } catch { return null; } })();
 const startupAt = Date.now();
 const startup = { revision: 'complete-audit-v1', requestedAt: Number(process.env.WHALE_LAUNCH_TIME) || startupAt, mainAt: startupAt, phases: {} };
@@ -38,7 +40,7 @@ if (nativeOcclusionDisabled) {
 }
 if (softwareRendering) app.disableHardwareAcceleration();
 else if (process.platform !== 'win32') app.commandLine.appendSwitch('enable-gpu-rasterization');
-if (!dataDir || !path.isAbsolute(dataDir) || (!fixture && !process.argv.includes('--supervised'))) app.exit(1);
+if (!dataDir || !path.isAbsolute(dataDir) || (!fixture && !wslMode && !process.argv.includes('--supervised'))) app.exit(1);
 protocol.registerSchemesAsPrivileged([{ scheme: 'whale', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 fs.mkdirSync(path.join(dataDir, 'desktop-profile'), { recursive: true });
 app.setPath('userData', path.join(dataDir, 'desktop-profile'));
@@ -52,6 +54,7 @@ const stateFile = path.join(dataDir, 'ui-state.json');
 const read = (f, fallback = {}) => { try { return JSON.parse(fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '')); } catch { return fallback; } };
 const save = (file, value) => { const temp = file + '.' + process.pid + '.tmp'; fs.writeFileSync(temp, JSON.stringify(value, null, 2)); fs.renameSync(temp, file); };
 let desktopMode = read(path.join(dataDir, 'follow-config.json')).mode === 'standalone' ? 'standalone' : 'follow-codex';
+if (wslMode) desktopMode = 'standalone';
 let desktopBoundsApplied = false, modePending = false;
 let recoveryAttempts = 0, recoveryTimer = null, readyTimer = null;
 const visibilityHistory = [];
@@ -155,8 +158,12 @@ async function showStatusDialog() {
   try { provider = dispatcher?.whale?.config?.publicInfo() || {}; } catch {}
   const lines = [
     '平台：' + process.platform,
-    '跟随模式：' + (lastHost?.followMode || (lastHost?.nativeFollowing ? 'native' : '等待 Codex')),
-    'Codex PID：' + (lastHost?.hostPid || '未检测到'),
+    ...(wslMode ? [
+      '龙娘版本：' + read(path.join(root, 'dragon.json')).version,
+      'WSL：' + (dispatcher?.watcher?.connection?.distribution || '尚未配置'),
+      '连接：' + (dispatcher?.watcher?.status().connected ? '已连接' : '等待连接'),
+      '进行中的任务：' + (dispatcher?.watcher?.status().activeTurns || 0),
+    ] : ['跟随模式：' + (lastHost?.followMode || (lastHost?.nativeFollowing ? 'native' : '等待 Codex')), 'Codex PID：' + (lastHost?.hostPid || '未检测到')]),
     '挂件窗口：' + (window?.isVisible?.() ? '显示' : '隐藏'),
     '桌面模式：' + desktopMode,
     '素材就绪：' + rendererReady,
@@ -165,7 +172,7 @@ async function showStatusDialog() {
   await dialog.showMessageBox({
     type: 'info',
     title: '挂件运行状态',
-    message: 'API 余额小鲸鱼',
+    message: 'Codex 龙娘',
     detail: lines.join('\n'),
     buttons: ['关闭'],
   });
@@ -249,7 +256,15 @@ else {
     const { startBridge } = await import(pathToFileURL(path.join(root, 'runtime', 'bridge.mjs')));
     let testOptions = {};
     if (fixture) { const { makeFixture } = await import(pathToFileURL(path.join(root, 'tests', process.env.WHALE_CONNECTIONS_UI_TEST === '1' ? 'connection-ui-fixture.mjs' : 'desktop-fixture.mjs'))); testOptions = await makeFixture(dataDir); }
-    dispatcher = createDispatcher({ dataDir, fetchImpl: (url, options) => net.fetch(url, options), onStop: pauseAndQuit, onShow: show, statusInfo: () => ({ followCodex: desktopMode !== 'standalone', desktopMode, rendererReady, recoveryAttempts, manuallyHidden, platform: process.platform, followMode: lastHost?.followMode || null, hostPid: lastHost?.hostPid || null, visible: !!window?.isVisible(), modePending, windowShape, windowShapeError, windowBounds: window?.getBounds(), visibility: visibilityController.snapshot(), nativeFollowing: !!lastHost?.nativeFollowing, mouseRouting: { forwardedMouseMoves: !usesWindowShape, cursorPollMs: usesWindowShape ? 16 : 50 }, diagnostics: { shortcutRegistered: diagnosticShortcutRegistered, lastReport: lastDiagnosticReport, native: lastHost?.visualDiagnostics || null }, startup, rendering: gpuStatus }), ...testOptions });
+    const dragonSystem = wslMode ? await require('./dragon-system.cjs').createDragonSystem({ app, Notification, shell, root, dataDir, show, quit: pauseAndQuit }) : {};
+    dispatcher = createDispatcher({ dataDir, wsl: wslMode, dragonSystem, fetchImpl: (url, options) => net.fetch(url, options), onStop: pauseAndQuit, onShow: show, statusInfo: () => ({ followCodex: desktopMode !== 'standalone', desktopMode, rendererReady, recoveryAttempts, manuallyHidden, platform: process.platform, followMode: lastHost?.followMode || null, hostPid: lastHost?.hostPid || null, visible: !!window?.isVisible(), modePending, windowShape, windowShapeError, windowBounds: window?.getBounds(), visibility: visibilityController.snapshot(), nativeFollowing: !!lastHost?.nativeFollowing, mouseRouting: { forwardedMouseMoves: !usesWindowShape, cursorPollMs: usesWindowShape ? 16 : 50 }, diagnostics: { shortcutRegistered: diagnosticShortcutRegistered, lastReport: lastDiagnosticReport, native: lastHost?.visualDiagnostics || null }, startup, rendering: gpuStatus }), ...testOptions });
+    if (wslMode) {
+      await dragonSystem.configure(dispatcher.dragon.value);
+      dragonSystem.start(() => dispatcher.watcher);
+      if (!dispatcher.watcher.connection) void dragonSystem.detect('').then(connection => dispatcher.watcher.configure(connection)).catch(error => { dispatcher.watcher.error = error.message; });
+      powerMonitor.on('suspend', () => { void dispatcher.watcher.stop(); });
+      powerMonitor.on('resume', () => { if (!quitting && dispatcher.watcher.connection) void dispatcher.watcher.reconnect(); });
+    }
     markStartup('dispatcherReady');
     await importLegacyStorage();
     session.defaultSession.protocol.handle('whale', async request => {
@@ -265,7 +280,7 @@ else {
     // native occlusion calculation even while its opaque pixels accept clicks.
     // Keep normal activation: Chromium's non-client handler consumes the first
     // mouse down (MA_NOACTIVATEANDEAT) when CanActivate/focusable is false.
-    window = new BrowserWindow({ ...area, ...(isMac ? { acceptFirstMouse: true } : { type: 'toolbar' }), transparent: true, frame: false, thickFrame: false, resizable: false, maximizable: false, fullscreenable: false, backgroundColor: '#00000000', hasShadow: false, skipTaskbar: true, show: false, title: 'API 余额小鲸鱼', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required', additionalArguments: fixture ? ['--whale-render-test'] : [] } });
+    window = new BrowserWindow({ ...area, ...(isMac ? { acceptFirstMouse: true } : { type: 'toolbar' }), transparent: true, frame: false, thickFrame: false, resizable: false, maximizable: false, fullscreenable: false, backgroundColor: '#00000000', hasShadow: false, skipTaskbar: true, show: false, title: wslMode ? 'Codex 龙娘' : 'Codex 龙娘', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required', additionalArguments: fixture ? ['--whale-render-test'] : [] } });
     if (usesWindowShape) applyWindowShape(EMPTY_SHAPE);
     if (isMac) {
       if (app.dock) app.dock.hide();
@@ -336,8 +351,8 @@ else {
     // messages into Chromium, which must not arbitrate the host cursor.
     const cursorPoll = setInterval(sendCursor, usesWindowShape ? 16 : 50);
     app.once('will-quit', () => clearInterval(cursorPoll));
-    const icon = nativeImage.createFromPath(path.join(root, 'assets', 'DSniang1.png')).resize({ width: 24, height: 24 });
-    tray = new Tray(icon); tray.setToolTip('API 余额小鲸鱼 · 跟随 Codex');
+    const icon = nativeImage.createFromPath(path.join(root, 'assets', 'codex-dragon.png')).resize({ width: 24, height: 24 });
+    tray = new Tray(icon); tray.setToolTip('Codex 龙娘 · 跟随 Codex');
     updateTray();
     tray.on('double-click', toggle); globalShortcut.register(isMac ? 'Command+Option+W' : 'Control+Alt+W', toggle);
     if (usesWindowShape && !fixture) diagnosticShortcutRegistered = globalShortcut.register('Control+Alt+Shift+F10', reportVisibility);
@@ -412,6 +427,7 @@ function recoverRenderer(reason) {
 }
 function setMode(mode) {
   if(quitting || !window || window.isDestroyed())return false;
+  if (wslMode && mode !== 'standalone') return false;
   if (!['standalone', 'follow-codex'].includes(mode)) return false;
   if (desktopMode === mode) { window.webContents.send(modePending ? 'whale-desktop-mode-changing' : 'whale-desktop-mode', mode); return true; }
   window.webContents.send('whale-desktop-mode-changing', mode);
@@ -427,13 +443,13 @@ function setMode(mode) {
 }
 function updateTray() {
   if (!tray) return;
-  tray.setToolTip('API 余额小鲸鱼 · ' + (desktopMode === 'standalone' ? '独立桌面' : '跟随 Codex'));
+  tray.setToolTip(wslMode ? 'Codex 龙娘' : 'Codex 龙娘 · ' + (desktopMode === 'standalone' ? '独立桌面' : '跟随 Codex'));
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '显示 / 隐藏小鲸鱼', click: toggle }, { label: '恢复显示小鲸鱼', click: show },
+    { label: '显示 / 隐藏龙娘', click: toggle }, { label: '恢复显示龙娘', click: show },
     { label: '进入桌面', type: 'radio', checked: desktopMode === 'standalone', click: () => setMode('standalone') },
-    { label: '跟随 Codex', type: 'radio', checked: desktopMode === 'follow-codex', click: () => setMode('follow-codex') },
-    { label: '刷新余额', click: () => sendCommand('balance') }, { label: '查看用量记录', click: () => sendCommand('usage') },
-    { label: 'API 设置', click: () => sendCommand('settings') }, { label: '查看运行状态', click: showStatusDialog },
-    { type: 'separator' }, { label: desktopMode === 'standalone' ? '退出（手动启动后恢复）' : '本次退出（下次打开 Codex 恢复）', click: pauseAndQuit }
+    { label: '跟随 Codex', visible: !wslMode, type: 'radio', checked: desktopMode === 'follow-codex', click: () => setMode('follow-codex') },
+    { label: wslMode ? '刷新订阅额度' : '刷新余额', click: () => wslMode ? dispatcher?.dispatch('/api/wsl/refresh', { method: 'POST' }) : sendCommand('balance') }, { label: '查看用量记录', click: () => sendCommand('usage') },
+    { label: wslMode ? '龙娘设置' : 'API 设置', click: () => sendCommand('settings') }, { label: '查看运行状态', click: showStatusDialog },
+    { type: 'separator' }, { label: wslMode ? '退出龙娘' : desktopMode === 'standalone' ? '退出（手动启动后恢复）' : '本次退出（下次打开 Codex 恢复）', click: pauseAndQuit }
   ]));
 }

@@ -27,6 +27,7 @@
     input.insertAdjacentElement('afterend', reset);
   }
   async function openSettings() {
+    if (window.WhaleWSL) return window.WhaleWSL.openSettings();
     try {
       const info = await api('/api/config'), settings = info.settings;
       resetFields.clear();

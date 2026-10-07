@@ -29,6 +29,7 @@ export function safeTurn(meta) {
   return { id: text(meta.id), sessionId: text(meta.sessionId), turnId: text(meta.turnId),
     rootTurnId: text(meta.rootTurnId || meta.turnId), parentThreadId: text(meta.parentThreadId),
     isSubagent: meta.isSubagent === true, partial: meta.partial === true, historical: meta.historical === true,
+    ...(finite(meta.observedAfter) !== null ? { observedAfter: meta.observedAfter } : {}),
     startedAt: finite(meta.startedAt), ts: finite(meta.ts), byModel: safeUsage(meta.byModel),
     outcome: ['completed', 'failed', 'aborted', 'superseded', 'interrupted'].includes(meta.outcome) ? meta.outcome : null,
     failureKind: meta.failureKind === 'high-demand' ? 'high-demand' : null,

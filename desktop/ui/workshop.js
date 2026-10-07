@@ -7,7 +7,7 @@
     dialog.append(element('h2', '本地创意工坊'), element('p', '把自己搭配的角色、气泡图片和音效打包分享，或使用别人分享的素材包。这是本地素材交换，不是在线商店。'));
     const steps=element('ol');
     for(const line of ['制作自己的包：先在菜单的角色、音效或资源管理中导入素材，再点“导出本地素材”。','使用分享包：选择别人导出的 whale-workshop.json，确认下方清单，再点“导入所选包”。','导入完成后点“重新加载素材列表”，到菜单的角色/音效下拉或自定义气泡图库中选择。导入不会自动替换正在使用的角色。'])steps.append(element('li',line));
-    dialog.append(steps,element('p','仅支持小鲸鱼工坊 JSON 包（最大 24 MiB），不是 DSH 插件 ZIP 或安装程序。不会导入 API 配置、账本或聊天；重名素材使用新编号保存。'));
+    dialog.append(steps,element('p','支持龙娘工坊 JSON 包（最大 24 MiB）。只导入角色、音效与气泡素材；重名素材使用新编号保存。'));
     const preview=element('div');preview.className='workshop-preview';dialog.append(preview);
     const status = element('p'); status.setAttribute('role', 'status');
     const file = document.createElement('input'); file.type = 'file'; file.accept = '.json,application/json'; file.setAttribute('aria-label', '选择工坊 JSON 包');

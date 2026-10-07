@@ -50,10 +50,10 @@
         if(r){const key=JSON.stringify(r);if(!seen.has(key)){seen.add(key);result.push(r);}}
       }
     });
-    for(const el of document.querySelectorAll('.dshwv-pop,.dshwv-menu-btn,.dshwv-menu')){
+    for(const el of document.querySelectorAll('.dshwv-pop,.dshwv-menu-btn,.dshwv-menu,.whale-wsl-float')){
       if(!visible(el,true))continue;
       const animations=paintingAnimations(el);
-      if(el.matches('.dshwv-pop-open,.dshwv-menu-btn-visible,.dshwv-menu-open')||animations.length)add(el,true);
+      if(el.matches('.dshwv-pop-open,.dshwv-menu-btn-visible,.dshwv-menu-open,.whale-wsl-float')||animations.length)add(el,true);
       // Follow moving bounds for the actual finite animation lifetime. Paused
       // animations preserve their pixels without starting an endless RAF loop.
       if(animations.some(a=>a.pending||(a.playState==='running'&&a.playbackRate!==0)))animate=true;

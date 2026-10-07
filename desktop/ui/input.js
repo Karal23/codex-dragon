@@ -124,10 +124,9 @@
     if (/\/dsh-whale\/image\.png(?:\?|$)/.test(source)) {
       // Network-independent visible emergency art: do not wait forever for ready.
       const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 160;
-      const c = canvas.getContext('2d'); c.fillStyle = '#6184cf'; c.beginPath(); c.ellipse(78, 95, 60, 42, 0, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.moveTo(125, 94); c.lineTo(158, 65); c.lineTo(154, 112); c.closePath(); c.fill();
-      c.fillStyle = 'white'; c.beginPath(); c.arc(53, 86, 8, 0, Math.PI * 2); c.fill(); c.fillStyle = '#203170'; c.beginPath(); c.arc(51, 86, 4, 0, Math.PI * 2); c.fill();
-      pet.src = canvas.toDataURL('image/png'); pet.alt = '小鲸鱼恢复占位图';
+      const c = canvas.getContext('2d'); c.fillStyle = '#d5c6ef'; c.beginPath(); c.moveTo(80, 15); c.lineTo(143, 80); c.lineTo(80, 145); c.lineTo(17, 80); c.closePath(); c.fill();
+      c.fillStyle = '#645080'; c.font = 'bold 25px system-ui'; c.textAlign = 'center'; c.fillText('Codex', 80, 88);
+      pet.src = canvas.toDataURL('image/png'); pet.alt = '龙娘恢复占位图';
       if (!ready) { ready = true; bridge.ready(); }
       window.whaleToast?.('内置角色无法读取，已使用恢复占位图。可重新选择角色或修复安装。');
       request(); return;

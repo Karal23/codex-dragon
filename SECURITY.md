@@ -2,9 +2,9 @@
 
 ## 支持范围
 
-本分支（**For-Codex**）当前交付为 **api-balance-whale v0.4.0 For-Codex 发布版**，对应标签 `codex-v0.4.0`。Windows x64 已做回归验证；macOS 兼容源自 PR #128，实机及完整集成待验证。上游 0.3.0-beta、历史 0.2.4 及 macOS 改编来源见 [PROVENANCE.md](PROVENANCE.md)，它们不代表当前版本号。漏洞报告渠道与披露安排遵循仓库维护者的实际政策。
+本仓库维护 **Codex 龙娘 0.2.x**，以 `dragon.json` 为版本依据，验证范围为 Windows + WSL。它派生自 MeteorNOX 的 For-Codex 分支；上游代码、macOS 实现及素材来源见 [PROVENANCE.md](PROVENANCE.md)。
 
-上游主分支（DSH Web 版 `dsh-whale-widget`）的普通功能问题可在对应 issue 中反馈。安全问题及两者共有代码的漏洞，请按下面的私密渠道说明受影响分支。
+龙娘特有问题请向本 Fork 的维护者私下报告；共享代码问题可协调上游。处理安排以相应维护者实际政策为准，不代表上游作出承诺。
 
 ## 报告漏洞
 
@@ -15,7 +15,7 @@
 
 请尽量包含：
 
-- 受影响的版本（`.codex-plugin/plugin.json` 里的 `version`）与操作系统版本；
+- 受影响的版本（`dragon.json` 里的 `version`）、Windows / WSL / Codex 版本；
 - 复现步骤或最小样例（PoC）；若涉及密钥/账本，请**脱敏**后再贴；
 - 影响评估：能读到什么、能改到什么、是否需要本地代码执行权限；
 - 是否已在别处公开，便于维护者评估披露安排。

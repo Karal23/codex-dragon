@@ -644,7 +644,7 @@
     roleBtn.title = '选择角色';
     var roleBtnLabel = document.createElement('span');
     roleBtnLabel.className = 'dshwv-btnlabel';
-    roleBtnLabel.textContent = '小鲸鱼';
+    roleBtnLabel.textContent = '龙娘';
     roleBtn.appendChild(roleBtnLabel);
     var rolePanel = document.createElement('div');
     rolePanel.className = 'dshwv-rolelist';
@@ -823,7 +823,7 @@
     menuHideToggle.type = 'checkbox';
     menuHideToggle.className = 'dshwv-check';
     menuHideToggle.checked = false;
-    menuHideToggle.title = '启用后隐藏挂件上的菜单按钮;右键小鲸鱼可唤出菜单(位置不变)';
+    menuHideToggle.title = '启用后隐藏挂件上的菜单按钮;右键龙娘可唤出菜单(位置不变)';
     menuHideToggle.addEventListener('change', function () {
       setMenuBtnHide(menuHideToggle.checked);
     });
@@ -1161,7 +1161,7 @@
       usagePanel.innerHTML = '';
       var subTitle = document.createElement('div');
       subTitle.className = 'dshwv-usage-subtitle';
-      subTitle.textContent = '- = 小鲸鱼记账 = -';
+      subTitle.textContent = '- = 龙娘记账 = -';
       usagePanel.appendChild(subTitle);
       buildUsageSettingsArea();
       usageMainEl = document.createElement('div');
@@ -1846,7 +1846,7 @@
         r = roleList[i];
         break;
       }
-      showConfirm('确定删除角色「' + (r ? r.name : id) + '」吗？\n若该角色正被使用,将自动回退默认小鲸鱼。', function () {
+      showConfirm('确定删除角色「' + (r ? r.name : id) + '」吗？\n若该角色正被使用,将自动回退默认龙娘。', function () {
         try {
           fetch('/dsh-whale/role-delete.json', {
             method: 'POST',
@@ -1863,7 +1863,7 @@
             if (d && d.ok && Array.isArray(d.roles)) {
               roleList = d.roles;
               renderRolePanel();
-              if (currentRole && currentRole.id === id) applyRole('default', '小鲸鱼', IMG_URL);
+              if (currentRole && currentRole.id === id) applyRole('default', '龙娘', IMG_URL);
               openResManager();
             }
           }).catch(assetFailure);
@@ -3219,7 +3219,7 @@
     var snapFlipLabel = document.createElement('span');
     snapFlipLabel.textContent = '翻转线';
     snapFlipRow.appendChild(snapFlipLabel);
-    snapFlipRow.appendChild(snapMakeNum('F', '翻转线：距屏幕左边的位置，线左侧的鲸鱼会左右翻转'));
+    snapFlipRow.appendChild(snapMakeNum('F', '翻转线：距屏幕左边的位置，线左侧的龙娘会左右翻转'));
     snapCard.appendChild(snapFlipRow);
     var snapBtns = document.createElement('div');
     snapBtns.className = 'dshwv-snapbtns';
@@ -9567,7 +9567,7 @@
     var ROLE_URL = '/dsh-whale/roles.json';
     var currentRole = {
       id: 'default',
-      name: '小鲸鱼',
+      name: '龙娘',
       url: IMG_URL
     };
     var roleList = [];
@@ -9579,11 +9579,11 @@
       try { failedId = localStorage.getItem('dshw-role') || failedId; } catch (err) {}
       if (failedId && failedId !== 'default') badRoleIds[failedId] = true;
       if (new URL(img.currentSrc || img.src, location.href).href === new URL(IMG_URL, location.href).href) {
-        assetNotice('内置小鲸鱼图片加载失败，请重启挂件或重新安装');
+        assetNotice('内置龙娘图片加载失败，请重启挂件或重新安装');
         return;
       }
       fallbackInProgress = true;
-      applyRole('default', '小鲸鱼', IMG_URL, true);
+      applyRole('default', '龙娘', IMG_URL, true);
     }
     window.addEventListener('whale-role-fallback', recoverBrokenRole);
     function loadRoles() {
@@ -9612,7 +9612,7 @@
           if (found && !badRoleIds[found.id]) {
             if (currentRole.id !== found.id) applyRole(found.id, found.name, found.url); else renderRolePanel();
           } else if (saved && saved !== 'default') {
-            applyRole('default', '小鲸鱼', IMG_URL);
+            applyRole('default', '龙娘', IMG_URL);
           }
         }).catch(function () {});
       } catch (err) {}
@@ -9737,13 +9737,13 @@
         WhaleRendering.presentFor(200);
         delete badRoleIds[id];
         fallbackInProgress = false;
-        if (isFallback) assetNotice('原角色图片无法显示，已切回小鲸鱼；可在角色菜单重新选择');
+        if (isFallback) assetNotice('原角色图片无法显示，已切回龙娘；可在角色菜单重新选择');
         return true;
       }).catch(function () {
         if (generation !== roleLoadGeneration) return false;
         badRoleIds[id] = true;
         fallbackInProgress = false;
-        assetNotice(isFallback ? '内置小鲸鱼图片加载失败，请重启挂件或重新安装' : '角色图片无法读取，已保留原角色');
+        assetNotice(isFallback ? '内置龙娘图片加载失败，请重启挂件或重新安装' : '角色图片无法读取，已保留原角色');
         if (!isFallback) recoverBrokenRole();
         return false;
       });
@@ -9884,7 +9884,7 @@
             if (d && d.ok && Array.isArray(d.roles)) {
               roleList = d.roles;
               renderRolePanel();
-              if (currentRole.id === id) applyRole('default', '小鲸鱼', IMG_URL);
+              if (currentRole.id === id) applyRole('default', '龙娘', IMG_URL);
             }
           }).catch(assetFailure);
         } catch (err) { assetFailure(err); }

@@ -15,7 +15,7 @@
   }
   function open() {
     const dialog = document.createElement('dialog'); dialog.className = 'whale-v3-dialog';
-    text(dialog, 'h2', window.WhaleAccountView?.mode==='subscription'?'会员额度详情':'DeepSeek 峰谷'); const content = document.createElement('div'); dialog.append(content);
+    text(dialog, 'h2', window.WhaleAccountView?.mode==='subscription'?'会员额度详情':'接口峰谷'); const content = document.createElement('div'); dialog.append(content);
     const actions = document.createElement('div'); actions.className = 'dialog-actions'; const refresh = text(actions, 'button', '刷新'), close = text(actions, 'button', '关闭'); dialog.append(actions);
     let generation = 0;
     async function load() {
@@ -64,7 +64,7 @@
     if (window.whaleDesktop?.command) {
       const modeRow = document.createElement('div'); modeRow.className = 'dshwv-menu-row';
       for (const [command, label] of [['desktop', '进入桌面'], ['follow', '跟随 Codex']]) {
-        const button = text(modeRow, 'button', label); button.className = 'dshwv-sound';
+        const button = text(modeRow, 'button', label); button.className = 'dshwv-sound'; button.dataset.desktopCommand = command;
         button.onclick = async () => { button.disabled=true; try { await switchDesktop(command); window.whaleToast?.(command === 'desktop' ? '已切换为独立桌面模式' : '已切换为跟随 Codex'); } catch (e) { window.whaleToast?.(e.message); } finally {button.disabled=false;} };
       }
       container.append(modeRow);

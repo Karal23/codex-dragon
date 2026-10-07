@@ -1,0 +1,50 @@
+.whale-account-card.whale-wsl-panel { width: 254px; padding: 13px 14px 11px; overflow: visible; border-color: #d2c4e6; background: #fcfafff5; box-shadow: 0 8px 28px #55416f26; }
+.whale-wsl-panel[hidden], .whale-wsl-panel [hidden] { display: none !important; }
+.whale-wsl-heading, .whale-wsl-quota-heading, .whale-wsl-totals, .whale-wsl-actions { display: flex; align-items: center; gap: 8px; }
+.whale-wsl-heading strong { flex: 1; font-size: 14px; letter-spacing: .2px; }
+.whale-wsl-panel .whale-wsl-heading button { padding: 2px 6px; font-size: 11px; }
+.whale-wsl-panel .whale-wsl-status { margin: 6px 0 9px; font-size: 12px; color: #7e6298; }
+.whale-wsl-status::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4bbaa3; margin-right: 6px; }
+.whale-wsl-panel[data-state=working] .whale-wsl-status::before { animation: wsl-breathe 1.4s ease-in-out infinite; }
+.whale-wsl-panel[data-state=offline] .whale-wsl-status { color: #8b7772; }
+.whale-wsl-panel[data-state=offline] .whale-wsl-status::before { background: #a49b95; }
+.whale-wsl-totals { justify-content: space-between; background: #f0eaf8; border-radius: 8px; padding: 7px 9px; font-size: 12px; }
+.whale-wsl-quota { margin-top: 11px; }
+.whale-wsl-quota-heading { justify-content: space-between; font-size: 12px; }
+.whale-wsl-quota-heading span { overflow-wrap: anywhere; }
+.whale-wsl-quota-heading strong { font-size: 18px; color: #8968ad; white-space: nowrap; }
+.whale-wsl-panel progress { display: block; width: 100%; height: 7px; margin: 5px 0; border: 0; border-radius: 8px; overflow: hidden; }
+.whale-wsl-panel progress::-webkit-progress-bar { background: #e9e0f4; border-radius: 8px; }
+.whale-wsl-panel progress::-webkit-progress-value { background: #ac8bcf; border-radius: 8px; transition: width .5s; }
+.whale-wsl-quota[data-low=true] progress::-webkit-progress-value { background: #de9472; }
+.whale-wsl-quota[data-stale=true] progress::-webkit-progress-value { background: #a7b7bf; }
+.whale-wsl-panel small { font-size: 10px; color: #728993; }
+.whale-wsl-panel .whale-wsl-empty { font-size: 12px; overflow-wrap: anywhere; }
+.whale-wsl-footer { margin-top: 10px; overflow-wrap: anywhere; }
+.whale-wsl-actions { margin-top: 8px; }
+.whale-wsl-panel .whale-wsl-actions button { font-size: 10px; padding: 3px 7px; background: transparent; }
+.whale-wsl-float { position: absolute; top: -25px; left: 0; right: 0; text-align: center; font-weight: 800; font-size: 16px; color: #dc798c; text-shadow: 0 1px 3px white; pointer-events: none; animation: wsl-float 1.2s ease-out forwards; }
+.whale-wsl-float.done { color: #27a288; }
+.whale-wsl-float.failed { color: #b98049; }
+#wsl-settings, #dragon-history { width: 500px; max-width: calc(100vw - 30px); max-height: 82vh; overflow-y: auto; font: 13px/1.5 system-ui; color: #494057; border: 1px solid #d4c8e5; border-radius: 16px; background: #fcfaff; }
+#dragon-history header { display: flex; align-items: center; justify-content: space-between; }
+#dragon-history select { margin-bottom: 12px; }
+.dragon-history-row { display: grid; grid-template-columns: 88px 1fr 60px; gap: 10px; align-items: center; padding: 6px 0; }
+.dragon-history-row meter { width: 100%; }
+.dragon-history-row strong { text-align: right; }
+#wsl-settings .dragon-check { display: flex; align-items: center; gap: 9px; }
+#wsl-settings .dragon-check input { width: auto; margin: 0; }
+#wsl-settings details { margin: 12px 0; padding: 10px; border: 1px solid #e2d9ee; border-radius: 8px; }
+#wsl-settings summary { cursor: pointer; }
+html[data-wsl-working=true] .dshwv-img { animation: dragon-working 2.8s ease-in-out infinite; }
+@keyframes dragon-working { 50% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { html[data-wsl-working=true] .dshwv-img { animation: none; } }
+#wsl-settings header { display: flex; align-items: center; justify-content: space-between; }
+#wsl-settings h2 { font-size: 18px; }
+#wsl-settings label { display: block; margin: 10px 0; }
+#wsl-settings input { box-sizing: border-box; display: block; width: 100%; margin-top: 4px; }
+.whale-wsl-error { color: #b14854; }
+html[data-wsl=true] .whale-account-menu button[data-mode=api], html[data-wsl=true] [data-account-api], html[data-wsl=true] [data-desktop-command=follow] { display: none !important; }
+@keyframes wsl-float { 0% { opacity: 0; transform: translateY(10px); } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-15px); } }
+@keyframes wsl-breathe { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .whale-wsl-float, .whale-wsl-status::before { animation: none !important; } }

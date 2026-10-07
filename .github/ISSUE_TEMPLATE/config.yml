@@ -1,17 +1,14 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 安装 / 使用文档（先看这里）
-    url: https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/blob/For-Codex/README.md
-    about: For-Codex v0.4.0 的安装、验证、停用与回滚入口，也可离线查看包内 README.md。
-  - name: v0.4 已知问题与验证边界
-    url: https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/blob/For-Codex/docs/KNOWN-ISSUES-0.4.md
-    about: 已知限制和仍需实机验证的场景；远端更新前请查看本地包内同名文档。
-  - name: 变更记录
-    url: https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/blob/For-Codex/CHANGELOG.md
-    about: For-Codex 版本变更、发布范围与历史记录。
+  - name: Codex 龙娘安装与使用
+    url: https://github.com/Karal23/codex-dragon/blob/dragon/README.md
+    about: Windows 桌面 + WSL Codex 的构建、安装和使用说明。
+  - name: 详细连接、更新与数据说明
+    url: https://github.com/Karal23/codex-dragon/blob/dragon/README-WSL.md
+    about: 连接设置、本机更新、额度和 Token 统计边界。
   - name: 安全漏洞（请勿公开提交）
-    url: https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/blob/For-Codex/SECURITY.md
-    about: 私密报告安全问题的渠道；处理安排遵循仓库维护者的实际政策。
-  - name: 上游 DSH 网页版插件
+    url: https://github.com/Karal23/codex-dragon/blob/dragon/SECURITY.md
+    about: 请先阅读安全策略，不要在公开 issue 中附带认证信息或完整日志。
+  - name: 原项目 DeepSeek-Balance-Whale-Widget
     url: https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget
-    about: 如果你要装的是"住在 DSH 网页里"的小鲸鱼，请到主分支。
+    about: 原作者 MeteorNOX 的仓库；本项目基于其 For-Codex 分支改造。

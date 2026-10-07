@@ -29,3 +29,15 @@ service.lock
 *.mp4
 *.zip
 __pycache__/
+
+# Local authentication and Dragon state are never publication inputs.
+auth.json
+wsl-connection.json
+dragon-settings.json
+dragon-alerts.json
+turn-journal.json
+last-turn.json
+last-update.json
+update-ready.json
+/data/
+/updates/

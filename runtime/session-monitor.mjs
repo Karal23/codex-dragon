@@ -7,17 +7,19 @@ import { failureKind } from './failure-kind.mjs';
 const fields = ['input_tokens', 'cached_input_tokens', 'cache_write_input_tokens', 'output_tokens', 'reasoning_output_tokens'];
 const normalize = value => Object.fromEntries(fields.map(key => [key, Math.max(0, Number(value?.[key]) || 0)]));
 const zero = () => normalize({});
-const relevant = /"(?:session_meta|token_count|turn_context|task_started|task_complete|turn_started|turn_completed|turn_aborted|task_aborted|error|stream_error)"/;
+const relevant = /"(?:session_meta|token_count|token_usage_record|turn_context|task_started|task_complete|turn_started|turn_completed|turn_aborted|task_aborted|error|stream_error)"/;
 const timestamp = value => typeof value === 'number' ? (value < 1e12 ? value * 1000 : value) : Date.parse(value);
 
 export class SessionParser {
-  constructor({ id, defaultModel = '', onStart = () => {}, onEnd = () => {}, onUpdate = () => {}, recoverIds = [] }) {
+  constructor({ id, defaultModel = '', onStart = () => {}, onEnd = () => {}, onUpdate = () => {}, recoverIds = [], observedAfter = {}, preferRequestUsage = false }) {
     this.id = id; this.model = ['__proto__', 'prototype', 'constructor'].includes(defaultModel) ? '' : defaultModel;
     this.onStart = onStart; this.onEnd = onEnd; this.onUpdate = onUpdate;
     this.total = null; this.active = null; this.priming = false;
     this.identity = null; this.skipHistory = 0; this.completed = new Set();
     this.recentEnds = new Map();
     this.recoverIds = new Set(recoverIds); this.recoverySeen = new Set();
+    this.observedAfter = observedAfter;
+    this.preferRequestUsage = preferRequestUsage; this.requestIds = new Set();
   }
   identify(meta) {
     // Only the first header identifies this file; session_id may be inherited.
@@ -52,7 +54,8 @@ export class SessionParser {
       }
       return;
     }
-    if (d.type !== 'event_msg') return;
+    const requestUsage = this.preferRequestUsage && d.type === 'token_usage_record';
+    if (d.type !== 'event_msg' && !requestUsage) return;
     const turnId = p.turn_id || p.turnId;
     if (['error', 'stream_error'].includes(p.type)) {
       // stream_error can be a reconnect diagnostic. A turn-level error is
@@ -70,6 +73,7 @@ export class SessionParser {
       // Old forks can rewrite outer timestamps, but preserve original start seconds.
       if (this.identity?.forked && Number.isFinite(startedAt) && startedAt + 1000 < this.identity.createdAt) return;
       if (this.active) this.end(timestamp(d.timestamp) || Date.now(), 'superseded');
+      this.requestIds.clear();
       this.active = { id: this.id + ':' + turnId, sessionId: this.id, turnId, rootTurnId: p.root_turn_id || turnId,
         isSubagent: this.identity?.isSubagent || false, parentThreadId: this.identity?.parentThreadId || null,
         byModel: {}, startedAt: startedAt || timestamp(d.timestamp) || Date.now(), ts: timestamp(d.timestamp) || Date.now(), partial: false };
@@ -78,15 +82,23 @@ export class SessionParser {
       if (!this.priming) this.onStart({ ...this.active });
       return;
     }
-    if (p.type === 'token_count' && p.info?.total_token_usage) {
-      const next = normalize(p.info.total_token_usage);
+    if (requestUsage || p.type === 'token_count' && p.info?.total_token_usage) {
+      if (requestUsage && (!this.active || turnId !== this.active.turnId || !p.response_id || !p.usage || !p.thread_token_usage || this.requestIds.has(p.response_id))) return;
+      // New Codex writes request usage before waiting for tools. Its later
+      // token_count snapshot covers those same requests and must not add again.
+      if (!requestUsage && this.requestIds.size) return;
+      const next = normalize(requestUsage ? p.thread_token_usage : p.info.total_token_usage);
       let delta = zero();
-      if (this.total) {
+      if (requestUsage) {
+        this.requestIds.add(p.response_id);
+        delta = normalize(p.usage);
+      } else if (this.total) {
         const reset = next.input_tokens < this.total.input_tokens || next.output_tokens < this.total.output_tokens;
         delta = reset ? normalize(p.info.last_token_usage) : Object.fromEntries(fields.map(k => [k, Math.max(0, next[k] - this.total[k])]));
       } else if (this.active && (!this.priming || this.active.recoverable)) delta = normalize(p.info.last_token_usage || next);
       this.total = next;
-      if (this.active && (!this.priming || this.active.recoverable) && delta.input_tokens + delta.output_tokens > 0) {
+      const withinObservation = !this.active || !this.observedAfter[this.active.id] || timestamp(d.timestamp) > this.observedAfter[this.active.id];
+      if (this.active && withinObservation && (!this.priming || this.active.recoverable) && delta.input_tokens + delta.output_tokens > 0) {
         const model = this.model || '未知模型';
         const counts = Object.hasOwn(this.active.byModel, model) ? this.active.byModel[model] : (this.active.byModel[model] = zero());
         for (const k of fields) counts[k] += delta[k];
@@ -145,13 +157,13 @@ function sessionFiles(root, recoverIds = []) {
 
 // Synchronous scanning is confined to the worker or isolated replay tests.
 export class SessionReader {
-  constructor({ root, defaultModel = '', onStart = () => {}, onEnd = () => {}, onUpdate = () => {}, discoverMs = 3000, recoverIds = [] }) {
-    Object.assign(this, { root, defaultModel, onStart, onEnd, onUpdate, discoverMs, recoverIds });
+  constructor({ root, defaultModel = '', onStart = () => {}, onEnd = () => {}, onUpdate = () => {}, discoverMs = 3000, recoverIds = [], observedAfter = {}, preferRequestUsage = false }) {
+    Object.assign(this, { root, defaultModel, onStart, onEnd, onUpdate, discoverMs, recoverIds, observedAfter, preferRequestUsage });
     this.files = new Map(); this.lastDiscovery = 0; this.error = '';
   }
   add(info, initial) {
     const parser = new SessionParser({ id: path.basename(info.file, '.jsonl'), defaultModel: this.defaultModel,
-      onStart: this.onStart, onEnd: this.onEnd, onUpdate: this.onUpdate, recoverIds: this.recoverIds });
+      onStart: this.onStart, onEnd: this.onEnd, onUpdate: this.onUpdate, recoverIds: this.recoverIds, observedAfter: this.observedAfter, preferRequestUsage: this.preferRequestUsage });
     const fd = fs.openSync(info.file, 'r');
     try {
       const head = Buffer.alloc(Math.min(info.size, 1024 * 1024));
@@ -257,4 +269,3 @@ export class SessionMonitor {
   status() { return { ...this.snapshot, activeTurns: [...this.service.turns.values()].filter(x => !x.isSubagent).length,
     recovery: { pending: this.service.journal?.entries.size || 0, error: this.service.journal?.error || this.service.recoveryError || '' }, worker: true }; }
 }
-

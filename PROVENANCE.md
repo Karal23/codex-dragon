@@ -1,34 +1,42 @@
 # 来源、改编范围与许可
 
-本分支将 MeteorNOX 的 dsh-whale-widget 0.3.0-beta 从 DSH Web 挂件适配为 Codex 桌面伴随挂件，插件名称为 api-balance-whale。
+本仓库是 [Karal23/codex-dragon](https://github.com/Karal23/codex-dragon)，维护者为 [@Karal23](https://github.com/Karal23)。当前派生版本为 **Codex 龙娘 0.2.2**，面向 Windows 桌面和 WSL 中的 Codex。它不是 OpenAI 官方产品，也不代表上游仓库所有权或维护关系发生变化。
 
-## 本次范围和协作关系
+## 原项目与作者
 
-- 当前交付：**api-balance-whale v0.4.0 For-Codex 发布版**，标签 `codex-v0.4.0`。包内插件清单、运行时和包版本均为 0.4.0。Windows 已进行回归验证；macOS 保留兼容代码，仍需实机验证。没有独立网页，不修改或注入 Codex 安装文件。
-- 仓库所属账号及上游作者：[@MeteorNOX](https://github.com/MeteorNOX)。
-- Codex 适配协作者：[@Yang-huai406](https://github.com/Yang-huai406)，不代表仓库所有权变更。
-- 历史 0.2.4/macOS 成果见 [原始提交](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/tree/8de181abf5593247f32d57995567dd9f4063e049)。历史归档名称 `archive/for-codex-0.2.4` 仅用于来源追溯，不是当前发布版的安装入口；v0.3 系列整合了 PR #128 的兼容路径。
-- 感谢 [@1llysviel](https://github.com/1llysviel) 的 [macOS PR #128](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/pull/128)。本次不会把其工作改称为新原创。
+| 来源 | 作者与改编范围 |
+| --- | --- |
+| [DeepSeek-Balance-Whale-Widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) | 原作者 [@MeteorNOX](https://github.com/MeteorNOX)；保留角色框架、资源管理、交互和上游素材 |
+| [For-Codex 分支](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/tree/For-Codex) | Codex 适配协作者 [@Yang-huai406](https://github.com/Yang-huai406)；保留 Electron 桌面宿主、本地 IPC、用量账本等实现 |
+| [macOS PR #128](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/pull/128) | 保留 [@1llysviel](https://github.com/1llysviel) 的 macOS 实现与署名；本派生版未完成 macOS 实机验证 |
+| [dsh-damage-pulse](https://github.com/wssfk12138/dsh-damage-pulse) | 改编其 BalanceWidget 的跳动反馈，用于 Token 增量提示；没有从该项目复制角色素材 |
 
-## 保留与改造
+本派生版的 For-Codex 基线为提交 [`7fa4596`](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/commit/7fa4596)，dsh-damage-pulse 参考提交为 [`472a1c1`](https://github.com/wssfk12138/dsh-damage-pulse/commit/472a1c17d69d8b842062b7143c761e695be6e766)。上游 Codex 历史 0.2.4 见 [原始提交](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/tree/8de181abf5593247f32d57995567dd9f4063e049)。旧版文档、归档、插件标识和版本信息为上游历史，不是龙娘当前版本或安装入口。
 
-保留原框架的角色、图片、动图、音效和主要交互。适配层提供 Electron 透明工具窗口、Windows 原生跟随、GUI 启动器、本地 IPC、当前 API 余额/用量、汇率、账本、恢复日志及安装回滚。
+## 本派生版的改造
 
-当前版本包含费用归属、设置保存、额度窗口合并、音频资源释放、气泡配置保真等修复。详情见 [README](README.md)、[变更记录](CHANGELOG.md) 和 [已知问题](docs/KNOWN-ISSUES-0.4.md)。
+新增 Windows + WSL 采集桥接、ChatGPT 订阅额度读取、自动重连、持久化增量历史、Windows 额度提醒、逐模型响应的 Token 飘字、龙娘表情、独立安装器和本机更新回滚。主安装入口为 `Install-Dragon.cmd`，构建入口为 `scripts/build-windows.mjs`，版本以 `dragon.json` 为准。
+
+界面与安装入口使用龙娘命名；内部历史资源键与部分上游插件标识沿用，兼容已有代码和用户资源。上游贡献不会被改称为本项目原创，也不会覆盖上游发布。
+
+## 默认角色素材
+
+`assets/codex-dragon.png` 于 2026-10-07 根据用户提供的白发龙角角色设定，使用内置 imagegen 生成。构图参考上游 `assets/DSniang1.png` 的大头半身比例；龙娘不是上游 DeepSeek 角色，也不是 OpenAI 官方吉祥物。
+
+`assets/codex-dragon-{blink,working,success,failed}.png` 由同一龙娘图生成四种表情。提示词和素材记录见 [默认角色](assets/codex-dragon.prompt.md) 与 [状态表情](assets/codex-dragon-expressions.prompt.md)。保留生成工具写入的来源信息。
 
 ## 许可边界
 
 | 范围 | 许可与分发方式 |
 | --- | --- |
-| 代码和文档 | MIT，保留 [LICENSE](LICENSE) 中的上游版权 |
-| assets 中的图片、动图、音频 | 按上游条款 as-is 随挂件分发；本仓库不授予再许可，不声明为本次原创，不因代码 MIT 而扩大素材权利 |
+| 代码和文档 | MIT，保留 [LICENSE](LICENSE) 中的上游版权及第三方声明 |
+| assets 中的上游图片、动图、音频 | 按上游条款 as-is 随挂件分发；不声明为本项目原创，不因代码 MIT 而扩大素材权利 |
+| 龙娘生成素材 | 保留上述参考与生成来源；不声称取得角色、商标或参考图的排他权利 |
 | vendor/smol-toml | BSD-3-Clause，保留原包许可证 |
-| Electron 与 Chromium | 安装时另外下载，保留其自带许可证和第三方声明 |
+| Electron 与 Chromium | 构建时下载，保留其自带许可证和第三方声明 |
 
-见 [第三方声明](THIRD_PARTY_NOTICES.md)。发布包不包含聊天截图和历史测试截图；其中角色素材仍遵循上述素材边界。
+完整第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-## 隐私和历史
+## 隐私与反馈
 
-公开打包规则排除个人密钥、账号、账本、运行日志、真实账户截图、缓存和本机备份。完整旧实现可通过 Git 历史追溯。本版由协作者 Yang-huai406 发布，仓库所有者仍为 MeteorNOX；不改写旧发布或主线 Latest。平台验证边界见已知问题文档。
-
-如果认为某个素材侵犯权利，请沿用仓库既有反馈渠道说明文件名和依据；核实后由维护者处理。安全问题按 [SECURITY.md](SECURITY.md) 私下报告，不提交凭据或完整日志。
+个人认证、连接设置、账本、会话、运行日志、测试输出和本机备份不进入提交。Fork 保留上游公开历史和署名；新增提交使用 GitHub 隐私邮箱。使用说明见 [README](README.md)，安全问题按 [SECURITY.md](SECURITY.md) 私下报告，不公开凭据、聊天或完整日志。

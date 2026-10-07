@@ -11,6 +11,9 @@ import { MEDIA_POLICY } from '../lib/media-validation.mjs';
 import { createInsightsService } from './insights.mjs';
 import { pricingSchedule } from './pricing-schedule.mjs';
 import { importWorkshop, exportWorkshop } from '../lib/workshop.mjs';
+import { ConfigStore } from './config.mjs';
+import { WslSource, listWslDistributions } from './wsl-source.mjs';
+import { DragonSettings } from './dragon-settings.mjs';
 
 export const UI_ORIGIN = 'whale://widget';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.gif': 'image/gif', '.mp3': 'audio/mpeg' };
@@ -23,26 +26,32 @@ const configurationFailure = error => {
 };
 
 // Dispatch original resource handlers entirely in process; no HTTP listener exists.
-export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor = true, autoRefresh = true, fetchImpl, fxFetchImpl = fetchImpl, onStop = () => {}, onShow = () => {}, statusInfo = () => ({}) } = {}) {
+export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor = true, autoRefresh = true, fetchImpl, fxFetchImpl = fetchImpl, onStop = () => {}, onShow = () => {}, statusInfo = () => ({}), wsl = false, wslOptions = {}, dragonSystem = {} } = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   migrateData(dataDir);
-  const whale = service || new WhaleService({ dataDir, ...(fetchImpl ? { fetchImpl } : {}) });
+  // WSL subscription mode never resolves Windows Codex credentials.
+  const subscriptionConfig = wsl ? new ConfigStore({ dataDir, codexHome: path.join(dataDir, 'subscription-source'), env: {} }) : null;
+  if (subscriptionConfig) subscriptionConfig.save({ provider: 'none', models: {} });
+  const whale = service || new WhaleService({ dataDir, ...(subscriptionConfig ? { config: subscriptionConfig } : {}), ...(fetchImpl ? { fetchImpl } : {}) });
   const fx = createFxService({ dataDir, ...(fxFetchImpl ? { fetchImpl: fxFetchImpl } : {}) });
-  const insights = createInsightsService(whale.config);
+  const dragon = wsl ? new DragonSettings({ dataDir, notify: dragonSystem.notify, defaultUpdateDir: dragonSystem.defaultUpdateDir }) : null;
+  const source = wsl ? new WslSource(whale, { dataDir, onQuota: snapshot => dragon.quota(snapshot), ...wslOptions }) : null;
+  const wslState = () => ({ ...source.state(), preferences: dragon.value, desktop: dragonSystem.status?.() || {} });
+  const insights = source ? { get: () => source.getInsights(), close() {} } : createInsightsService(whale.config);
   const displayModeFile = path.join(dataDir, 'display-mode.json');
-  const displayMode = () => readJson(displayModeFile, {}).mode === 'subscription' ? 'subscription' : 'api';
+  const displayMode = () => wsl || readJson(displayModeFile, {}).mode === 'subscription' ? 'subscription' : 'api';
   const routes = new Map(), effects = [];
   createWidgetHost(dataDir).apply({ whale, webServer: { register: r => { routes.set(r.path, r.handler); return () => routes.delete(r.path); }, tapIndex: () => () => {} }, effect: f => effects.push(f()) });
-  const watcher = monitor ? new SessionMonitor(whale) : null;
+  const watcher = monitor ? source || new SessionMonitor(whale) : null;
   watcher?.start();
   const timer = autoRefresh ? setInterval(() => { if (displayMode() === 'api') whale.getBalance().catch(() => {}); }, 60000) : null;
   timer?.unref();
   if (autoRefresh) {
     if (displayMode() === 'api') whale.getBalance().catch(() => {});
-    fx.start().catch(() => {});
+    if (!wsl) fx.start().catch(() => {});
   }
   const stateFile = path.join(dataDir, 'ui-state.json');
-  const buildVersion = readJson(path.join(ROOT, '.codex-plugin', 'plugin.json'), {}).version || VERSION;
+  const buildVersion = wsl ? readJson(path.join(ROOT, 'dragon.json'), {}).version : readJson(path.join(ROOT, '.codex-plugin', 'plugin.json'), {}).version || VERSION;
   const buildRevision = readJson(path.join(ROOT, 'package.json'), {}).codexBuild || '';
   let closing = false, closeJob = null;
 
@@ -60,10 +69,37 @@ export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor 
       const bytes = body == null ? Buffer.alloc(0) : Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
       if (bytes.length > 32 * 1024 * 1024) return jsonResult(413, { ok: false, error: '导入文件过大' });
       const parsed = () => JSON.parse(bytes.toString('utf8') || '{}');
+      if (url.pathname === '/api/wsl' && method === 'GET') return jsonResult(200, source ? wslState() : { ok: true, enabled: false });
+      if (source && url.pathname === '/api/wsl/preferences' && method === 'PUT') {
+        try { const next = dragon.validate(parsed()); await dragonSystem.configure?.(next); dragon.save(next); dragon.quota(source.quota); return jsonResult(200, wslState()); }
+        catch (error) { return configurationFailure(error); }
+      }
+      if (source && url.pathname === '/api/wsl/detect' && method === 'POST') {
+        try { return jsonResult(200, { ok: true, connection: await dragonSystem.detect(parsed().distribution || '') }); }
+        catch (error) { return configurationFailure(error); }
+      }
+      if (source && url.pathname === '/api/wsl/notification-test' && method === 'POST') return jsonResult(200, { ok: dragonSystem.notify?.({ title: 'Codex 龙娘', body: '额度提醒已就绪。', kind: 'test' }) !== false });
+      if (source && url.pathname === '/api/wsl/update/check' && method === 'POST') return jsonResult(200, { ok: true, desktop: await dragonSystem.checkUpdate?.() });
+      if (source && url.pathname === '/api/wsl/update/install' && method === 'POST') {
+        if (source.status().activeTurns) return jsonResult(409, { ok: false, error: 'Codex 正在工作，请在任务结束后更新' });
+        try { return jsonResult(200, { ok: true, desktop: await dragonSystem.installUpdate?.() }); }
+        catch (error) { return configurationFailure(error); }
+      }
+      if (source && url.pathname === '/api/wsl/distributions' && method === 'GET') return jsonResult(200, { ok: true, distributions: await listWslDistributions() });
+      if (source && url.pathname === '/api/wsl/connection' && method === 'PUT') {
+        await source.configure(parsed()); return jsonResult(200, source.state());
+      }
+      if (source && url.pathname === '/api/wsl/reconnect' && method === 'POST') {
+        await source.reconnect(); return jsonResult(200, source.state());
+      }
+      if (source && url.pathname === '/api/wsl/refresh' && method === 'POST') {
+        source.refresh(); return jsonResult(200, { ok: true });
+      }
       if (url.pathname === '/api/display-mode') {
         if (method === 'GET') return jsonResult(200, {ok:true,mode:displayMode()});
         if (method !== 'POST') return jsonResult(405, {ok:false});
         const input=parsed();
+        if (wsl && input.mode !== 'subscription') return jsonResult(400, { ok: false, error: 'WSL 挂件使用 Codex 订阅模式' });
         if (!['api','subscription'].includes(input.mode)) return jsonResult(400,{ok:false,error:'请选择 API 或会员订阅额度模式'});
         writeJson(displayModeFile,{version:1,mode:input.mode});
         return jsonResult(200,{ok:true,mode:input.mode});
@@ -75,7 +111,7 @@ export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor 
       if (url.pathname === '/api/pricing' && method === 'GET') return jsonResult(200, {ok:true,...pricingSchedule(whale.config.resolve())});
       if (url.pathname === '/api/workshop/export' && method === 'GET') return jsonResult(200, exportWorkshop(dataDir));
       if (url.pathname === '/api/workshop/import' && method === 'POST') return jsonResult(200, importWorkshop(dataDir, parsed()));
-      if (url.pathname === '/api/status' && method === 'GET') return jsonResult(200, { ok: true, version: VERSION, buildVersion, buildRevision, transport: 'local-ipc', webpage: false, provider: whale.config.publicInfo(), monitor: watcher?.status() || { watching: 0, activeTurns: 0 }, dataDir, ...statusInfo() });
+      if (url.pathname === '/api/status' && method === 'GET') return jsonResult(200, { ok: true, version: wsl ? buildVersion : VERSION, buildVersion, buildRevision, transport: 'local-ipc', webpage: false, provider: whale.config.publicInfo(), monitor: watcher?.status() || { watching: 0, activeTurns: 0 }, dataDir, ...statusInfo() });
       if (url.pathname === '/api/config') {
         if (method === 'GET') return jsonResult(200, { ok: true, ...whale.config.settingsInfo() });
         if (method === 'PUT') {
@@ -137,6 +173,9 @@ export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor 
       uiFiles['/dashboard.js']='dashboard.js';
       uiFiles['/connection-settings.js']='connection-settings.js';
       uiFiles['/balance-view.js']='balance-view.js';
+      uiFiles['/wsl-panel.js']='wsl-panel.js';
+      uiFiles['/dragon-avatar.js']='dragon-avatar.js';
+      uiFiles['/wsl-panel.css']='wsl-panel.css';
       let file;
       if (Object.hasOwn(uiFiles, url.pathname)) file = path.join(ROOT, 'desktop', 'ui', uiFiles[url.pathname]);
       else if (url.pathname.startsWith('/assets/')) {
@@ -170,6 +209,7 @@ export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor 
     closeJob = (async () => {
       const failures = [];
       insights.close();
+      dragonSystem.close?.();
       try { await fx.close(); } catch (error) { failures.push(error); }
       try { await watcher?.stop({ timeoutMs: 1200 }); } catch (error) { failures.push(error); }
       try { await whale.close?.({ timeoutMs: 3000 }); } catch (error) { failures.push(error); }
@@ -181,5 +221,5 @@ export function createDispatcher({ dataDir = DATA_HOME, service = null, monitor 
     })();
     return closeJob;
   }
-  return { dispatch, whale, watcher, close };
+  return { dispatch, whale, watcher, dragon, close };
 }

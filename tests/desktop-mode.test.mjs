@@ -29,7 +29,7 @@ test('standalone cannot bypass renderer readiness and switching to follow applie
 function mainModeFixture() {
  const source = fs.readFileSync(new URL('../desktop/main.cjs', import.meta.url), 'utf8');
  const calls = [], area = { x: 0, y: 0, width: 1920, height: 1080 };
- const state = { quitting:false, desktopMode: 'follow-codex', desktopBoundsApplied: false, modePending: false, appliedBounds: '', appliedNativeSize: '', dataDir: '/test', path, isMac: false, fixture: false, manuallyHidden: false, hostSequence: -1, hostHeartbeat: 0, lastHost: null, owner: '',
+ const state = { quitting:false, wslMode:false, desktopMode: 'follow-codex', desktopBoundsApplied: false, modePending: false, appliedBounds: '', appliedNativeSize: '', dataDir: '/test', path, isMac: false, fixture: false, manuallyHidden: false, hostSequence: -1, hostHeartbeat: 0, lastHost: null, owner: '',
   Number, Date, usesWindowShape: true, visibilityRecorder: { sample() {} }, save: () => calls.push('save'), read: () => ({}), sendCursor: () => {}, updateTray: () => {}, markStartup: () => {}, diagnose: () => {}, toDipRect: x => x,
   screen: { getPrimaryDisplay: () => ({ workArea: area }) },
   window: { isDestroyed:()=>false, setBounds: () => calls.push('bounds'), setPosition: () => calls.push('position'), getBounds: () => area, setAlwaysOnTop: () => calls.push('top'), webContents: { send: event => calls.push(event) } },
@@ -45,6 +45,13 @@ function mainModeFixture() {
 test('reselecting the active mode closes UI without changing geometry or remapping', () => {
  const f = mainModeFixture(); f.state.setMode('follow-codex');
  assert.deepEqual(f.calls, ['whale-desktop-mode']);
+});
+
+test('WSL companion remains standalone without a Windows Codex host', () => {
+ const f = mainModeFixture(); f.state.wslMode = true; f.state.desktopMode = 'standalone';
+ assert.equal(f.state.setMode('follow-codex'), false);
+ assert.equal(f.state.desktopMode, 'standalone');
+ assert.deepEqual(f.calls, []);
 });
 
 test('standalone waits for native detach and follow waits for fresh attachment', async () => {

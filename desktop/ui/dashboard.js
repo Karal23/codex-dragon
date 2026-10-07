@@ -6,10 +6,10 @@
     const settings=menu.querySelector('.dshwv-menuview'),usageArea=menu.querySelector('.dshwv-usage-area'),header=menu.querySelector('.whale-account-menu');
     if(!settings||!usageArea||!header)return;
     const originalControls=[...settings.querySelectorAll('button,input,select,textarea')];
-    menu.classList.add('whale-dashboard');header.querySelector('strong').textContent='小鲸鱼';
+    menu.classList.add('whale-dashboard');header.querySelector('strong').textContent='龙娘';
     let page='overview',generation=0,balance=null,insights=null,lastNotice=null;
     const el=(parent,tag,value,cls)=>{const e=document.createElement(tag);if(value)e.textContent=value;if(cls)e.className=cls;parent.append(e);return e;};
-    const nav=el(menu,'nav','','whale-dashboard-tabs');nav.setAttribute('role','tablist');nav.setAttribute('aria-label','小鲸鱼页面');header.after(nav);
+    const nav=el(menu,'nav','','whale-dashboard-tabs');nav.setAttribute('role','tablist');nav.setAttribute('aria-label','龙娘页面');header.after(nav);
     const scroll=el(menu,'div','','whale-dashboard-scroll');
     const overview=el(scroll,'section','','whale-overview');
     const overviewData=el(overview,'div','','whale-overview-data');
